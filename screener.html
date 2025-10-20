@@ -5,358 +5,414 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>AI Resume Ranker — Smarter Hiring Starts Here</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+<!-- Libraries -->
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/mammoth@1.6.0/dist/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 :root {
-  --primary: #0056d6;
-  --accent: #00c3ff;
-  --bg: #f5f9ff;
-  --card: #fff;
-  --text: #0a0a0a;
-  --muted: #555;
+  --bg:#eef3ff; --card:#fff; --text:#0f1724; --muted:#5b6b87;
+  --primary:#0056d6; --accent:#00c3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Poppins",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  overflow-x:hidden;
+  transition:background .5s,color .5s;
+}
+.app{max-width:1100px;width:100%;position:relative;}
+
+/* ======= HEADER AREA ======= */
+header{
+  position:relative;
+  background:linear-gradient(135deg,rgba(0,86,214,0.15),rgba(0,195,255,0.15));
+  border-radius:24px;
+  padding:40px 30px 60px;
+  margin-bottom:40px;
+  overflow:hidden;
+  box-shadow:0 6px 25px rgba(0,0,0,0.1);
+  animation:fadeInUp 1s ease forwards;
+}
+header::before{
+  content:"";
+  position:absolute;
+  top:-50%;left:-50%;
+  width:200%;height:200%;
+  background:conic-gradient(from 0deg,var(--primary),var(--accent),var(--primary));
+  animation:rotateGlow 8s linear infinite;
+  filter:blur(80px);
+  opacity:.25;
+  z-index:0;
+}
+@keyframes rotateGlow{
+  0%{transform:rotate(0deg);}
+  100%{transform:rotate(360deg);}
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  scroll-behavior: smooth;
+/* Brand */
+.brand{
+  display:flex;align-items:center;gap:16px;
+  z-index:2;position:relative;
+  animation:slideInLeft 1s ease forwards;
+}
+.logo{
+  width:80px;height:80px;border-radius:20px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:28px;font-weight:700;
+  box-shadow:0 0 25px var(--accent);
+  animation:glowPulse 3s ease-in-out infinite;
+}
+@keyframes glowPulse{
+  0%,100%{box-shadow:0 0 15px var(--accent);}
+  50%{box-shadow:0 0 35px var(--accent);}
+}
+h1{
+  margin:0;
+  font-size:30px;
+  background:linear-gradient(90deg,var(--primary),var(--accent));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:textGlow 3s ease-in-out infinite alternate;
+}
+@keyframes textGlow{
+  from{filter:drop-shadow(0 0 4px var(--primary));}
+  to{filter:drop-shadow(0 0 10px var(--accent));}
 }
 
-body {
-  font-family: "Poppins", sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  overflow-x: hidden;
+/* Header tagline */
+header .tagline{
+  font-size:15px;
+  color:var(--muted);
+  margin-top:6px;
+  opacity:0;
+  animation:fadeIn 1.5s ease 1s forwards;
+}
+@keyframes fadeIn{to{opacity:1;}}
+@keyframes slideInLeft{
+  0%{transform:translateX(-40px);opacity:0;}
+  100%{transform:translateX(0);opacity:1;}
+}
+@keyframes fadeInUp{
+  0%{transform:translateY(40px);opacity:0;}
+  100%{transform:translateY(0);opacity:1;}
 }
 
-/* ===== HEADER ===== */
-header {
-  position: relative;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: white;
-  text-align: center;
-  padding: 120px 20px;
-  overflow: hidden;
+/* Floating icons */
+.icon-float{
+  position:absolute;
+  width:40px;height:40px;
+  background:rgba(0,195,255,0.2);
+  border:1px solid rgba(0,195,255,0.4);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--primary);
+  font-size:18px;
+  animation:floatIcon 6s ease-in-out infinite;
+  z-index:0;
+  cursor:pointer;
+  transition:transform .3s;
+}
+.icon-float:hover{transform:scale(1.2) rotate(10deg);}
+.icon1{top:10%;left:15%;animation-delay:0s;}
+.icon2{top:55%;left:80%;animation-delay:2s;}
+.icon3{top:75%;left:35%;animation-delay:1s;}
+.icon4{top:25%;left:70%;animation-delay:3s;}
+@keyframes floatIcon{
+  0%,100%{transform:translateY(0) rotate(0);}
+  50%{transform:translateY(-15px) rotate(8deg);}
 }
 
-header h1 {
-  font-size: 4rem;
-  font-weight: 700;
-  position: relative;
-  z-index: 3;
-  animation: fadeInDown 1.5s ease;
+/* CTA Section */
+.header-cta{
+  margin-top:40px;
+  display:flex;flex-direction:column;align-items:center;
+  gap:20px;z-index:1;position:relative;
+  animation:fadeInUp 1.2s ease 0.4s forwards;
+}
+.header-cta p{
+  max-width:700px;text-align:center;color:var(--muted);
+  font-size:15px;line-height:1.5;
+}
+.header-btn{
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  color:white;font-weight:600;
+  border:none;border-radius:12px;
+  padding:14px 28px;
+  box-shadow:0 0 15px rgba(0,195,255,0.3);
+  cursor:pointer;
+  font-size:16px;
+  position:relative;
+  overflow:hidden;
+  transition:transform .3s,box-shadow .3s;
+}
+.header-btn:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 25px rgba(0,195,255,0.6);
+}
+.header-btn::after{
+  content:"";
+  position:absolute;
+  top:0;left:-75%;
+  width:50%;height:100%;
+  background:linear-gradient(120deg,transparent,rgba(255,255,255,0.6),transparent);
+  transform:skewX(-25deg);
+  transition:left .8s;
+}
+.header-btn:hover::after{left:130%;}
+
+/* Feature highlights */
+.feature-strip{
+  margin-top:30px;
+  display:flex;flex-wrap:wrap;gap:15px;
+  justify-content:center;
+}
+.feature{
+  background:rgba(255,255,255,0.8);
+  border-radius:12px;
+  padding:10px 18px;
+  font-size:14px;
+  color:var(--text);
+  box-shadow:0 0 10px rgba(0,0,0,0.05);
+  transition:transform .3s,box-shadow .3s;
+}
+.feature:hover{
+  transform:translateY(-4px) scale(1.05);
+  box-shadow:0 0 15px rgba(0,195,255,0.4);
 }
 
-header p {
-  font-size: 1.2rem;
-  margin: 20px 0 40px;
-  z-index: 3;
-  position: relative;
-  line-height: 1.6;
-  animation: fadeIn 2s ease;
+/* ========== MAIN PANEL ========== */
+.panel{
+  background:var(--card);padding:25px;border-radius:16px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:25px;
+  animation:fadeInUp 1.2s ease forwards;
+}
+label{font-weight:600;font-size:14px;display:block;margin-top:12px;margin-bottom:6px;}
+textarea,input[type="file"]{
+  width:100%;border-radius:10px;border:1px solid rgba(100,100,100,0.2);
+  padding:10px;background:var(--card);color:var(--text);
+}
+textarea{resize:vertical;min-height:120px;}
+button{
+  border:none;border-radius:10px;padding:12px 18px;
+  font-weight:600;cursor:pointer;transition:.3s;
+}
+.btn{
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  color:white;margin-top:15px;
+  box-shadow:0 0 10px rgba(0,195,255,0.3);
+  animation:buttonPulse 4s ease-in-out infinite;
+}
+.btn:hover{
+  transform:translateY(-3px) scale(1.03);
+  box-shadow:0 0 20px rgba(0,195,255,0.6);
+}
+@keyframes buttonPulse{
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.3);}
 }
 
-.cta-btn {
-  background: white;
-  color: var(--primary);
-  font-weight: 700;
-  padding: 14px 35px;
-  border-radius: 40px;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: 0.3s;
-  z-index: 3;
-  position: relative;
-  animation: fadeInUp 2.5s ease;
+/* Results */
+.results{margin-top:20px;}
+.result-card{
+  background:var(--card);border-radius:10px;padding:12px 16px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-left:5px solid var(--primary);
+  animation:fadeUpCard 0.7s ease forwards;
+  transition:all 0.3s ease;
 }
-.cta-btn:hover {
-  transform: scale(1.05);
-  background: var(--accent);
-  color: white;
+@keyframes fadeUpCard{
+  from{opacity:0;transform:translateY(30px);}
+  to{opacity:1;transform:translateY(0);}
 }
-
-/* ===== FLOATING PARTICLES ===== */
-@keyframes float {
-  0% { transform: translateY(0) translateX(0); opacity: 0.6; }
-  50% { transform: translateY(-20px) translateX(15px); opacity: 1; }
-  100% { transform: translateY(0) translateX(0); opacity: 0.6; }
-}
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  animation: float 6s ease-in-out infinite;
-  z-index: 1;
-}
-.p1 { width: 60px; height: 60px; top: 20%; left: 10%; animation-duration: 7s; }
-.p2 { width: 40px; height: 40px; top: 60%; left: 70%; animation-duration: 8s; }
-.p3 { width: 80px; height: 80px; top: 40%; left: 40%; animation-duration: 10s; }
-.p4 { width: 25px; height: 25px; top: 75%; left: 20%; animation-duration: 9s; }
-
-/* ===== WAVE EFFECT ===== */
-header::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 200%;
-  height: 120px;
-  background: url('https://svgshare.com/i/13Lu.svg');
-  background-repeat: repeat-x;
-  background-size: contain;
-  animation: waveMove 20s linear infinite;
-  z-index: 2;
-}
-@keyframes waveMove {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+.result-card:hover{
+  transform:translateY(-5px) scale(1.02);
+  box-shadow:0 8px 20px rgba(0,86,214,0.2);
+  border-left-color:var(--accent);
 }
 
-/* ===== ANIMATIONS ===== */
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.progress-container{margin-top:15px;display:none;}
+.progress-wrap{
+  height:18px;background:rgba(0,0,0,0.1);border-radius:10px;overflow:hidden;
+}
+.progress-bar{
+  width:0%;height:100%;
+  background:linear-gradient(90deg,var(--primary),var(--accent));
+  animation:scanmove 1.5s linear infinite;background-size:200% 100%;
+}
+@keyframes scanmove{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.progress-text{text-align:center;margin-top:8px;color:var(--muted);font-size:13px;}
+footer{text-align:center;font-size:13px;color:var(--muted);margin-top:25px;}
 
-@keyframes iconPulse {
-  0% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.2); opacity: 1; color: var(--accent); }
-  100% { transform: scale(1); opacity: 0.9; }
+/* AI overlay animation */
+.ai-scan-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:radial-gradient(circle at 50% -20%,rgba(0,195,255,0.15),transparent 70%);
+  pointer-events:none;z-index:999;opacity:0;transition:opacity .5s ease;
 }
-
-/* ===== SECTIONS ===== */
-section {
-  padding: 80px 20px;
-  max-width: 1100px;
-  margin: auto;
-}
-
-h2.section-title {
-  text-align: center;
-  font-size: 2rem;
-  margin-bottom: 10px;
-  color: var(--primary);
-  animation: fadeInDown 1s ease;
-}
-
-p.section-sub {
-  text-align: center;
-  max-width: 650px;
-  margin: 0 auto 60px;
-  color: var(--muted);
-  font-size: 1rem;
-  animation: fadeIn 1.5s ease;
-}
-
-/* ===== HOW IT WORKS ===== */
-.how-it-works {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 40px;
-  justify-content: center;
-}
-.step {
-  flex: 1 1 250px;
-  background: var(--card);
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  transition: 0.4s;
-  opacity: 0;
-  transform: translateY(30px);
-}
-.step.visible { opacity: 1; transform: translateY(0); transition: all 0.7s ease; }
-.step:hover {
-  transform: translateY(-10px) scale(1.02);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-}
-.step-icon {
-  font-size: 36px;
-  margin-bottom: 15px;
-  color: var(--accent);
-  animation: iconPulse 3s infinite ease-in-out;
-}
-.step h3 {
-  font-size: 1.1rem;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-.step p { font-size: 0.95rem; color: var(--muted); }
-
-/* ===== FEATURES ===== */
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 25px;
-  justify-items: center;
-}
-.feature {
-  background: var(--card);
-  border-radius: 15px;
-  padding: 25px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  transition: 0.4s;
-  opacity: 0;
-  transform: translateY(30px);
-  text-align: center;
-}
-.feature.visible { opacity: 1; transform: translateY(0); transition: all 0.8s ease; }
-.feature:hover {
-  transform: translateY(-10px) scale(1.03);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-}
-.feature-icon {
-  font-size: 38px;
-  color: var(--primary);
-  margin-bottom: 15px;
-  animation: iconPulse 3.5s infinite ease-in-out;
-}
-.feature h3 {
-  font-size: 1.1rem;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-.feature p {
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-/* ===== ABOUT ===== */
-.about {
-  text-align: center;
-  background: linear-gradient(180deg, #f5f9ff, #ffffff);
-  border-radius: 20px;
-  padding: 70px 30px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-  opacity: 0;
-  transform: translateY(30px);
-}
-.about.visible { opacity: 1; transform: translateY(0); transition: all 0.9s ease; }
-.about h2 { color: var(--primary); margin-bottom: 20px; }
-.about p {
-  color: var(--muted);
-  max-width: 800px;
-  margin: 0 auto 30px;
-  line-height: 1.7;
-}
-.about button {
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: 30px;
-  padding: 14px 40px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
-}
-.about button:hover { background: var(--accent); transform: scale(1.05); }
-
-/* ===== TESTIMONIALS ===== */
-.testimonials {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 25px;
-}
-.testimonial {
-  flex: 1 1 280px;
-  background: var(--card);
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-  text-align: left;
-  transition: 0.4s;
-  opacity: 0;
-  transform: translateY(30px);
-}
-.testimonial.visible { opacity: 1; transform: translateY(0); transition: all 0.9s ease; }
-.testimonial:hover { transform: translateY(-10px) scale(1.02); }
-.testimonial p { font-style: italic; color: var(--muted); margin-bottom: 12px; }
-.testimonial h4 { color: var(--primary); font-weight: 600; font-size: 0.95rem; }
-
-/* ===== FOOTER ===== */
-footer {
-  text-align: center;
-  padding: 30px 10px;
-  background: var(--card);
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin-top: 60px;
-}
-
-/* ===== RESPONSIVE ===== */
-@media(max-width: 650px) {
-  header h1 { font-size: 2.2rem; }
+.ai-scan-overlay.active{opacity:1;animation:aiScanMove 4s linear infinite;}
+@keyframes aiScanMove{
+  0%{background-position:50% -30%;}
+  50%{background-position:50% 120%;}
+  100%{background-position:50% -30%;}
 }
 </style>
 </head>
+
 <body>
+<div class="ai-scan-overlay" id="aiScan"></div>
 
-<header>
-  <div class="particle p1"></div>
-  <div class="particle p2"></div>
-  <div class="particle p3"></div>
-  <div class="particle p4"></div>
-  <h1>AI Resume Ranker</h1>
-  <p>Empowering recruiters with AI-driven resume analysis — smarter, faster, and bias-free candidate selection.</p>
-  <a href="screener.html"><button class="cta-btn">🚀 Launch Screener</button></a>
-</header>
+<div class="app">
+  <header>
+    <div class="icon-float icon1">🤖</div>
+    <div class="icon-float icon2">💼</div>
+    <div class="icon-float icon3">✨</div>
+    <div class="icon-float icon4">📊</div>
 
-<section id="how">
-  <h2 class="section-title">How It Works</h2>
-  <p class="section-sub">Our system simplifies screening with advanced NLP and contextual AI.</p>
-  <div class="how-it-works">
-    <div class="step"><div class="step-icon">📂</div><h3>1. Upload Resumes</h3><p>Supports PDF, DOCX, and TXT files. Intelligent parsing extracts all relevant details.</p></div>
-    <div class="step"><div class="step-icon">🧠</div><h3>2. AI-Powered Analysis</h3><p>Natural Language Processing models analyze experiences, skills, and qualifications contextually.</p></div>
-    <div class="step"><div class="step-icon">🏆</div><h3>3. Ranked Insights</h3><p>Instantly view compatibility scores and ranked candidates for informed hiring decisions.</p></div>
+    <div class="brand">
+      <div class="logo">AI</div>
+      <div>
+        <h1>AI Resume Ranker</h1>
+        <div class="tagline">Smarter, Faster, and Fairer Hiring with Intelligent Resume Analysis</div>
+      </div>
+    </div>
+
+    <div class="header-cta">
+      <p>
+        Upload multiple resumes and let AI instantly evaluate, score, and rank them 
+        against your job description. Perfect for recruiters, HR professionals, and startups.
+      </p>
+            <div class="feature-strip">
+        <div class="feature">⚡ Instant AI Ranking</div>
+        <div class="feature">📂 Supports PDF & DOCX</div>
+        <div class="feature">🔍 Keyword & Skill Match</div>
+        <div class="feature">📊 Exportable Reports</div>
+        <div class="feature">🌐 100% Real Time Processing</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <label>Job Description</label>
+    <textarea id="jobDesc" placeholder="Paste job description here..."></textarea>
+
+    <label>Upload Resumes (PDF, DOCX, TXT)</label>
+    <input type="file" id="resumeUpload" multiple accept=".pdf,.docx,.txt">
+
+    <button id="analyzeBtn" class="btn">🚀 Analyze & Rank</button>
+
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-text" id="progressText">Preparing...</div>
+    </div>
   </div>
-</section>
 
-<section id="features">
-  <h2 class="section-title">Why Choose AI Resume Ranker?</h2>
-  <p class="section-sub">Built for recruiters, powered by AI — efficient, transparent, and insightful.</p>
-  <div class="features">
-    <div class="feature"><div class="feature-icon">🧠</div><h3>AI-Powered Analysis</h3><p>Deep context-based matching of resumes with job descriptions.</p></div>
-    <div class="feature"><div class="feature-icon">⚡</div><h3>Lightning Fast</h3><p>Process hundreds of resumes within seconds.</p></div>
-    <div class="feature"><div class="feature-icon">📊</div><h3>Intelligent Scoring</h3><p>Smart scoring algorithm considers skill, experience, and education.</p></div>
-    <div class="feature"><div class="feature-icon">🤝</div><h3>Bias Reduction</h3><p>Focuses on qualifications, reducing unconscious bias.</p></div>
-    <div class="feature"><div class="feature-icon">🏅</div><h3>Candidate Ranking</h3><p>Get ranked candidates with detailed reasoning per match.</p></div>
-    <div class="feature"><div class="feature-icon">📁</div><h3>Multi-Format Support</h3><p>Upload resumes in PDF, DOCX, or TXT with precision parsing.</p></div>
+  <div class="results" id="results"></div>
+  <div style="display:flex;gap:10px;margin-top:10px;">
+    <button id="exportCSV" class="btn" style="display:none">📄 Export CSV</button>
+    <button id="exportPDF" class="btn" style="display:none">🧾 Export PDF</button>
   </div>
-</section>
 
-<section class="about">
-  <h2>About AI Resume Ranker</h2>
-  <p>AI Resume Ranker is an intelligent hiring assistant that empowers HR professionals and hiring managers to focus on what truly matters — the best-fit candidates. Using natural language understanding, our platform goes beyond keyword matching to understand the context of skills and experiences.</p>
-  <a href="screener.html"><button>Start Screening</button></a>
-</section>
-
-<section class="testimonials">
-  <h2 class="section-title">What Our Users Say</h2>
-  <div class="testimonials">
-    <div class="testimonial"><p>“It’s like having an extra recruiter powered by AI — saved us hours every week!”</p><h4>— HR Manager, Fintech Co.</h4></div>
-    <div class="testimonial"><p>“Incredibly accurate and fast! I was impressed by how well it understood our job descriptions.”</p><h4>— Talent Lead, StartupHub</h4></div>
-    <div class="testimonial"><p>“The ranking insights helped us identify hidden talent that keyword filters missed.”</p><h4>— Recruitment Consultant</h4></div>
-  </div>
-</section>
-
-<footer>© 2025 AI Resume Ranker - Intelligent Hiring Starts Here</footer>
+  <footer>© 2025 AI Resume Ranker — Crafted with ❤️ for Smart Recruiters</footer>
+</div>
 
 <script>
-/* === Scroll Animation Observer === */
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) entry.target.classList.add('visible');
-  });
-}, { threshold: 0.2 });
+/* ========== TEXT EXTRACTION FUNCTIONS ========== */
+async function extractPDFText(file){
+  try{
+    const arr=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:arr}).promise;
+    let text="";
+    for(let i=1;i<=pdf.numPages;i++){
+      const pg=await pdf.getPage(i);
+      const cont=await pg.getTextContent();
+      text+=cont.items.map(it=>it.str).join(" ")+" ";
+    }
+    return text;
+  }catch(e){console.error("PDF error",e);return "";}
+}
+async function extractDOCXText(file){
+  try{
+    const arr=await file.arrayBuffer();
+    const {value}=await mammoth.extractRawText({arrayBuffer:arr});
+    if(value && value.trim().length>0) return value;
+  }catch(e){console.warn("Mammoth failed, fallback:",e);}
+  try{
+    const zip=await JSZip.loadAsync(file);
+    const xml=await zip.file("word/document.xml").async("string");
+    const cleaned=xml.replace(/<[^>]+>/g," ");
+    return cleaned;
+  }catch(e){console.warn("JSZip fallback failed",e);}
+  try{
+    const reader=new FileReader();
+    return await new Promise(resolve=>{
+      reader.onload=()=>resolve(reader.result);
+      reader.readAsText(file);
+    });
+  }catch(e){console.error("DOCX plain fallback failed",e);}
+  return "";
+}
+async function extractTXTText(file){return await file.text();}
+async function extractText(file){
+  const n=file.name.toLowerCase();
+  if(n.endsWith(".pdf"))return await extractPDFText(file);
+  if(n.endsWith(".docx"))return await extractDOCXText(file);
+  if(n.endsWith(".txt"))return await extractTXTText(file);
+  return "";
+}
 
-document.querySelectorAll('.step, .feature, .about, .testimonial').forEach(el => observer.observe(el));
-</script>
-</body>
-</html>
+/* ========== UTILITIES ========== */
+function normalizeText(text){
+  let cleaned=text.toLowerCase();
+  cleaned=cleaned.replace(/([^a-z0-9\s])/g,' ');
+  cleaned=cleaned.replace(/\s+/g,' ').trim();
+  return cleaned;
+}
+function progress(p,msg){
+  progressBar.style.width=p+"%";
+  progressText.textContent=msg+" ("+p+"%)";
+}
+
+/* ========== SEMANTIC SCORING ========== */
+function getPhrases(text){return text.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);}
+function jaccardSim(a,b){
+  const sa=new Set(a.split(' ')), sb=new Set(b.split(' '));
+  const inter=[...sa].filter(x=>sb.has(x)).length;
+  const union=new Set([...sa,...sb]).size;
+  return inter/Math.max(union,1);
+}
+function semanticScore(job,resume){
+  const jobP=getPhrases(job), resP=getPhrases(resume);
+  if(!jobP.length||!resP.length)return 0;
+  let total=0;
+  jobP.forEach(jp=>{
+    let best=0;
+    resP.forEach(rp=>{
+      const sim=jaccardSim(jp,rp);
+      if(sim>best)best=sim;
+    });
+    total+=best;
+  });
+  return total/jobP.length;
+}
+
+/* ========== MAIN FUNCTIONALITY ========== */
+const jobDesc=document.getElementById("jobDesc"),
+resumeUpload=document.getElementById("resumeUpload"),
+resultsDiv=document.getElementById("results"),
+progressBar=document.getElementById("progressBar"),
+progressContainer=document.getElementById("progressContainer"),
+progressText=document.getElementById("progressText"),
+analyzeBtn=document.getElementById("analyzeBtn"),
+exportCSV=document.getElementById("exportCSV"),
+exportPDF=document.getElementById("exportPDF"),
+aiScan=document
