@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>AI Resume Ranker — Smarter Hiring Starts Here</title>
+<title>AI Resume Ranker — Synonyms & Title Match</title>
 
 <!-- Libraries -->
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -13,406 +13,562 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-:root {
-  --bg:#eef3ff; --card:#fff; --text:#0f1724; --muted:#5b6b87;
-  --primary:#0056d6; --accent:#00c3ff;
+:root{
+  --bg:#eef6ff;
+  --card:#ffffff;
+  --text:#0f1724;
+  --muted:#5b6b87;
+  --primary:#0066ff;
+  --accent:#00c3ff;
+  --good:#14824b; --warn:#d98b0f; --bad:#c0392b;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{
-  font-family:"Poppins",sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  overflow-x:hidden;
-  transition:background .5s,color .5s;
-}
-.app{max-width:1100px;width:100%;position:relative;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
+body{background:var(--bg);color:var(--text);padding:20px;display:flex;justify-content:center;}
+.app{max-width:1140px;width:100%;}
 
-/* ======= HEADER AREA ======= */
-header{
-  position:relative;
-  background:linear-gradient(135deg,rgba(0,86,214,0.15),rgba(0,195,255,0.15));
-  border-radius:24px;
-  padding:40px 30px 60px;
-  margin-bottom:40px;
-  overflow:hidden;
-  box-shadow:0 6px 25px rgba(0,0,0,0.1);
-  animation:fadeInUp 1s ease forwards;
+/* HEADER: blue gradient, animated shimmer */
+.header{
+  position:relative;border-radius:20px;padding:36px 32px;margin-bottom:26px;overflow:hidden;
+  background:linear-gradient(135deg,#0575e6 0%, #00c6ff 100%);
+  color:white;box-shadow:0 10px 30px rgba(2,20,50,0.12);
 }
-header::before{
-  content:"";
-  position:absolute;
-  top:-50%;left:-50%;
-  width:200%;height:200%;
-  background:conic-gradient(from 0deg,var(--primary),var(--accent),var(--primary));
-  animation:rotateGlow 8s linear infinite;
-  filter:blur(80px);
-  opacity:.25;
-  z-index:0;
-}
-@keyframes rotateGlow{
-  0%{transform:rotate(0deg);}
-  100%{transform:rotate(360deg);}
-}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:14px;}
+.logo{width:72px;height:72px;border-radius:12px;background:linear-gradient(135deg,#004ecc,#00d0ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:24px;box-shadow:0 6px 18px rgba(0,0,0,0.12);}
+h1{font-size:28px;margin:0;letter-spacing:0.6px;font-weight:800;line-height:1;}
+.tagline{margin-top:6px;color:rgba(255,255,255,0.92);font-size:15px;max-width:680px;}
 
-/* Brand */
-.brand{
-  display:flex;align-items:center;gap:16px;
-  z-index:2;position:relative;
-  animation:slideInLeft 1s ease forwards;
+/* subtle animated shimmer overlay */
+.header::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  mix-blend-mode:overlay;
+  animation:shimmer 8s linear infinite;
 }
-.logo{
-  width:80px;height:80px;border-radius:20px;
-  background:linear-gradient(135deg,var(--primary),var(--accent));
-  display:flex;align-items:center;justify-content:center;
-  color:white;font-size:28px;font-weight:700;
-  box-shadow:0 0 25px var(--accent);
-  animation:glowPulse 3s ease-in-out infinite;
-}
-@keyframes glowPulse{
-  0%,100%{box-shadow:0 0 15px var(--accent);}
-  50%{box-shadow:0 0 35px var(--accent);}
-}
-h1{
-  margin:0;
-  font-size:30px;
-  background:linear-gradient(90deg,var(--primary),var(--accent));
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  animation:textGlow 3s ease-in-out infinite alternate;
-}
-@keyframes textGlow{
-  from{filter:drop-shadow(0 0 4px var(--primary));}
-  to{filter:drop-shadow(0 0 10px var(--accent));}
-}
+@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
 
-/* Header tagline */
-header .tagline{
-  font-size:15px;
-  color:var(--muted);
-  margin-top:6px;
-  opacity:0;
-  animation:fadeIn 1.5s ease 1s forwards;
-}
-@keyframes fadeIn{to{opacity:1;}}
-@keyframes slideInLeft{
-  0%{transform:translateX(-40px);opacity:0;}
-  100%{transform:translateX(0);opacity:1;}
-}
-@keyframes fadeInUp{
-  0%{transform:translateY(40px);opacity:0;}
-  100%{transform:translateY(0);opacity:1;}
-}
+/* floating icons placed in corners (outside text area) */
+.icon-float{position:absolute;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.12);color:white;transition:transform .35s;}
+.icon-float:hover{transform:translateY(-6px) scale(1.06);}
+.icon1{top:12px;left:12px;}
+.icon2{top:12px;right:12px;}
+.icon3{bottom:12px;left:12px;}
+.icon4{bottom:12px;right:12px;}
 
-/* Floating icons */
-.icon-float{
-  position:absolute;
-  width:40px;height:40px;
-  background:rgba(0,195,255,0.2);
-  border:1px solid rgba(0,195,255,0.4);
-  border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--primary);
-  font-size:18px;
-  animation:floatIcon 6s ease-in-out infinite;
-  z-index:0;
-  cursor:pointer;
-  transition:transform .3s;
-}
-.icon-float:hover{transform:scale(1.2) rotate(10deg);}
-.icon1{top:10%;left:15%;animation-delay:0s;}
-.icon2{top:55%;left:80%;animation-delay:2s;}
-.icon3{top:75%;left:35%;animation-delay:1s;}
-.icon4{top:25%;left:70%;animation-delay:3s;}
-@keyframes floatIcon{
-  0%,100%{transform:translateY(0) rotate(0);}
-  50%{transform:translateY(-15px) rotate(8deg);}
-}
+/* MAIN PANEL */
+.panel{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(8,20,40,0.06);}
+label{display:block;font-weight:700;margin-bottom:8px;color:var(--muted);}
+textarea,input[type="file"],input[type="text"]{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(12,34,63,0.08);font-size:14px;background:white;resize:vertical;}
+textarea{min-height:120px;}
+.controls{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+.btn{background:linear-gradient(135deg,var(--primary),var(--accent));color:white;border:none;padding:12px 16px;border-radius:10px;cursor:pointer;font-weight:700;}
+.btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,120,255,0.12);}
 
-/* CTA Section */
-.header-cta{
-  margin-top:40px;
-  display:flex;flex-direction:column;align-items:center;
-  gap:20px;z-index:1;position:relative;
-  animation:fadeInUp 1.2s ease 0.4s forwards;
-}
-.header-cta p{
-  max-width:700px;text-align:center;color:var(--muted);
-  font-size:15px;line-height:1.5;
-}
-.header-btn{
-  background:linear-gradient(135deg,var(--primary),var(--accent));
-  color:white;font-weight:600;
-  border:none;border-radius:12px;
-  padding:14px 28px;
-  box-shadow:0 0 15px rgba(0,195,255,0.3);
-  cursor:pointer;
-  font-size:16px;
-  position:relative;
-  overflow:hidden;
-  transition:transform .3s,box-shadow .3s;
-}
-.header-btn:hover{
-  transform:scale(1.05);
-  box-shadow:0 0 25px rgba(0,195,255,0.6);
-}
-.header-btn::after{
-  content:"";
-  position:absolute;
-  top:0;left:-75%;
-  width:50%;height:100%;
-  background:linear-gradient(120deg,transparent,rgba(255,255,255,0.6),transparent);
-  transform:skewX(-25deg);
-  transition:left .8s;
-}
-.header-btn:hover::after{left:130%;}
+/* progress */
+.progress-container{margin-top:14px;display:none;}
+.progress-wrap{height:14px;background:#eef6ff;border-radius:10px;overflow:hidden;}
+.progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--accent));transition:width 300ms;}
+.progress-text{font-size:13px;color:var(--muted);margin-top:8px;text-align:center;}
 
-/* Feature highlights */
-.feature-strip{
-  margin-top:30px;
-  display:flex;flex-wrap:wrap;gap:15px;
-  justify-content:center;
-}
-.feature{
-  background:rgba(255,255,255,0.8);
-  border-radius:12px;
-  padding:10px 18px;
-  font-size:14px;
-  color:var(--text);
-  box-shadow:0 0 10px rgba(0,0,0,0.05);
-  transition:transform .3s,box-shadow .3s;
-}
-.feature:hover{
-  transform:translateY(-4px) scale(1.05);
-  box-shadow:0 0 15px rgba(0,195,255,0.4);
-}
+/* results */
+.results{margin-top:18px;}
+.result-card{display:flex;justify-content:space-between;align-items:flex-start;padding:12px;border-radius:10px;background:var(--card);border-left:6px solid var(--primary);box-shadow:0 6px 18px rgba(12,34,63,0.04);margin-bottom:12px;}
+.badge{padding:6px 10px;border-radius:999px;color:white;font-weight:800;}
+.badge.good{background:var(--good);} .badge.warn{background:var(--warn);} .badge.bad{background:var(--bad);}
+.breakdown{font-size:13px;color:var(--muted);margin-top:6px;}
+.snippet{margin-top:8px;background:rgba(0,0,0,0.03);padding:8px;border-radius:8px;font-size:13px;color:#243142;}
 
-/* ========== MAIN PANEL ========== */
-.panel{
-  background:var(--card);padding:25px;border-radius:16px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:25px;
-  animation:fadeInUp 1.2s ease forwards;
-}
-label{font-weight:600;font-size:14px;display:block;margin-top:12px;margin-bottom:6px;}
-textarea,input[type="file"]{
-  width:100%;border-radius:10px;border:1px solid rgba(100,100,100,0.2);
-  padding:10px;background:var(--card);color:var(--text);
-}
-textarea{resize:vertical;min-height:120px;}
-button{
-  border:none;border-radius:10px;padding:12px 18px;
-  font-weight:600;cursor:pointer;transition:.3s;
-}
-.btn{
-  background:linear-gradient(135deg,var(--primary),var(--accent));
-  color:white;margin-top:15px;
-  box-shadow:0 0 10px rgba(0,195,255,0.3);
-  animation:buttonPulse 4s ease-in-out infinite;
-}
-.btn:hover{
-  transform:translateY(-3px) scale(1.03);
-  box-shadow:0 0 20px rgba(0,195,255,0.6);
-}
-@keyframes buttonPulse{
-  0%,100%{filter:brightness(1);}
-  50%{filter:brightness(1.3);}
-}
-
-/* Results */
-.results{margin-top:20px;}
-.result-card{
-  background:var(--card);border-radius:10px;padding:12px 16px;margin-bottom:10px;
-  display:flex;justify-content:space-between;align-items:center;
-  border-left:5px solid var(--primary);
-  animation:fadeUpCard 0.7s ease forwards;
-  transition:all 0.3s ease;
-}
-@keyframes fadeUpCard{
-  from{opacity:0;transform:translateY(30px);}
-  to{opacity:1;transform:translateY(0);}
-}
-.result-card:hover{
-  transform:translateY(-5px) scale(1.02);
-  box-shadow:0 8px 20px rgba(0,86,214,0.2);
-  border-left-color:var(--accent);
-}
-
-.progress-container{margin-top:15px;display:none;}
-.progress-wrap{
-  height:18px;background:rgba(0,0,0,0.1);border-radius:10px;overflow:hidden;
-}
-.progress-bar{
-  width:0%;height:100%;
-  background:linear-gradient(90deg,var(--primary),var(--accent));
-  animation:scanmove 1.5s linear infinite;background-size:200% 100%;
-}
-@keyframes scanmove{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-.progress-text{text-align:center;margin-top:8px;color:var(--muted);font-size:13px;}
-footer{text-align:center;font-size:13px;color:var(--muted);margin-top:25px;}
-
-/* AI overlay animation */
-.ai-scan-overlay{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:radial-gradient(circle at 50% -20%,rgba(0,195,255,0.15),transparent 70%);
-  pointer-events:none;z-index:999;opacity:0;transition:opacity .5s ease;
-}
-.ai-scan-overlay.active{opacity:1;animation:aiScanMove 4s linear infinite;}
-@keyframes aiScanMove{
-  0%{background-position:50% -30%;}
-  50%{background-position:50% 120%;}
-  100%{background-position:50% -30%;}
+/* responsive */
+@media (max-width:760px){
+  h1{font-size:20px;}
+  .header-inner{flex-direction:column;align-items:flex-start;gap:12px;}
+  .icon1,.icon2,.icon3,.icon4{width:38px;height:38px;font-size:18px;}
+  .result-card{flex-direction:column;align-items:flex-start;}
 }
 </style>
 </head>
-
 <body>
-<div class="ai-scan-overlay" id="aiScan"></div>
-
 <div class="app">
-  <header>
-    <div class="icon-float icon1">🤖</div>
-    <div class="icon-float icon2">💼</div>
-    <div class="icon-float icon3">✨</div>
-    <div class="icon-float icon4">📊</div>
+  <header class="header" role="banner" aria-label="AI Resume Ranker header">
+    <!-- floating icons placed in corners so they don't overlap text -->
+    <div class="icon-float icon1" aria-hidden="true">🤖</div>
+    <div class="icon-float icon2" aria-hidden="true">💼</div>
+    <div class="icon-float icon3" aria-hidden="true">✨</div>
+    <div class="icon-float icon4" aria-hidden="true">📊</div>
 
-    <div class="brand">
-      <div class="logo">AI</div>
-      <div>
-        <h1>AI Resume Ranker</h1>
-        <div class="tagline">Smarter, Faster, and Fairer Hiring with Intelligent Resume Analysis</div>
+    <div class="header-inner">
+      <div class="brand" style="min-width:0;">
+        <div class="logo" aria-hidden="true">AI</div>
+        <div style="min-width:0;">
+          <h1>AI Resume Ranker</h1>
+          <div class="tagline">Match job title, skills, and experience — with synonyms and smarter scoring.</div>
+        </div>
       </div>
-    </div>
 
-    <div class="header-cta">
-      <p>
-        Upload multiple resumes and let AI instantly evaluate, score, and rank them 
-        against your job description. Perfect for recruiters, HR professionals, and startups.
-      </p>
-            <div class="feature-strip">
-        <div class="feature">⚡ Instant AI Ranking</div>
-        <div class="feature">📂 Supports PDF & DOCX</div>
-        <div class="feature">🔍 Keyword & Skill Match</div>
-        <div class="feature">📊 Exportable Reports</div>
-        <div class="feature">🌐 100% Real Time Processing</div>
+      <div style="text-align:right;">
+        <div style="font-weight:700">Smarter Screening</div>
+        <div style="font-size:13px;margin-top:6px;color:rgba(255,255,255,0.92)">Upload resumes • Analyze • Export</div>
       </div>
     </div>
   </header>
 
-  <div class="panel">
-    <label>Job Description</label>
-    <textarea id="jobDesc" placeholder="Paste job description here..."></textarea>
+  <div class="panel" role="main" aria-label="Resume screener">
+    <label for="jobDesc">Job Description</label>
+    <textarea id="jobDesc" placeholder="Paste job description here (adding a 'Title:' line and a 'Skills:' line helps)."></textarea>
 
-    <label>Upload Resumes (PDF, DOCX, TXT)</label>
-    <input type="file" id="resumeUpload" multiple accept=".pdf,.docx,.txt">
+    <div style="margin-top:12px;">
+      <label for="resumeUpload">Upload Resumes (PDF, DOCX, TXT)</label>
+      <input id="resumeUpload" type="file" multiple accept=".pdf,.docx,.txt">
+    </div>
 
-    <button id="analyzeBtn" class="btn">🚀 Analyze & Rank</button>
-
-    <div class="progress-container" id="progressContainer">
-      <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
-      <div class="progress-text" id="progressText">Preparing...</div>
+    <div class="controls">
+      <button id="analyzeBtn" class="btn">🚀 Analyze & Rank</button>
+      <div style="flex:1">
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+          <div id="progressText" class="progress-text">Preparing...</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="results" id="results"></div>
-  <div style="display:flex;gap:10px;margin-top:10px;">
+  <div id="results" class="results" aria-live="polite"></div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
     <button id="exportCSV" class="btn" style="display:none">📄 Export CSV</button>
     <button id="exportPDF" class="btn" style="display:none">🧾 Export PDF</button>
   </div>
-
-  <footer>© 2025 AI Resume Ranker — Crafted with ❤️ for Smart Recruiters</footer>
 </div>
 
 <script>
-/* ========== TEXT EXTRACTION FUNCTIONS ========== */
+/* --------------------------
+   Utilities & extraction
+   -------------------------- */
 async function extractPDFText(file){
   try{
-    const arr=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:arr}).promise;
-    let text="";
+    const arr = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:arr}).promise;
+    let text = '';
     for(let i=1;i<=pdf.numPages;i++){
-      const pg=await pdf.getPage(i);
-      const cont=await pg.getTextContent();
-      text+=cont.items.map(it=>it.str).join(" ")+" ";
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + ' ';
     }
     return text;
-  }catch(e){console.error("PDF error",e);return "";}
+  }catch(e){ console.warn('PDF extract failed', e); return ''; }
 }
 async function extractDOCXText(file){
   try{
-    const arr=await file.arrayBuffer();
-    const {value}=await mammoth.extractRawText({arrayBuffer:arr});
-    if(value && value.trim().length>0) return value;
-  }catch(e){console.warn("Mammoth failed, fallback:",e);}
+    const arr = await file.arrayBuffer();
+    const { value } = await mammoth.extractRawText({ arrayBuffer: arr });
+    if(value && value.trim()) return value;
+  }catch(e){ console.warn('mammoth failed', e); }
   try{
-    const zip=await JSZip.loadAsync(file);
-    const xml=await zip.file("word/document.xml").async("string");
-    const cleaned=xml.replace(/<[^>]+>/g," ");
-    return cleaned;
-  }catch(e){console.warn("JSZip fallback failed",e);}
-  try{
-    const reader=new FileReader();
-    return await new Promise(resolve=>{
-      reader.onload=()=>resolve(reader.result);
-      reader.readAsText(file);
-    });
-  }catch(e){console.error("DOCX plain fallback failed",e);}
-  return "";
+    const zip = await JSZip.loadAsync(file);
+    const xml = await zip.file('word/document.xml').async('string');
+    return xml.replace(/<[^>]+>/g,' ');
+  }catch(e){ console.warn('jszip fallback failed', e); }
+  try{ return await file.text(); }catch(e){ return ''; }
 }
-async function extractTXTText(file){return await file.text();}
+async function extractTXTText(file){ return await file.text(); }
 async function extractText(file){
-  const n=file.name.toLowerCase();
-  if(n.endsWith(".pdf"))return await extractPDFText(file);
-  if(n.endsWith(".docx"))return await extractDOCXText(file);
-  if(n.endsWith(".txt"))return await extractTXTText(file);
-  return "";
+  const n = file.name.toLowerCase();
+  if(n.endsWith('.pdf')) return await extractPDFText(file);
+  if(n.endsWith('.docx')) return await extractDOCXText(file);
+  if(n.endsWith('.txt')) return await extractTXTText(file);
+  return '';
 }
+function normalize(s){
+  if(!s) return '';
+  return s.toLowerCase().replace(/[^a-z0-9+\-#\. ]/g,' ').replace(/\s+/g,' ').trim();
+}
+function tokenize(s){ if(!s) return []; return normalize(s).split(/\s+/).filter(Boolean); }
+function unique(arr){ return [...new Set(arr)]; }
+function escapeHtml(t){ return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ========== UTILITIES ========== */
-function normalizeText(text){
-  let cleaned=text.toLowerCase();
-  cleaned=cleaned.replace(/([^a-z0-9\s])/g,' ');
-  cleaned=cleaned.replace(/\s+/g,' ').trim();
-  return cleaned;
-}
-function progress(p,msg){
-  progressBar.style.width=p+"%";
-  progressText.textContent=msg+" ("+p+"%)";
-}
+/* --------------------------
+   Synonym maps (tweakable)
+   -------------------------- */
+const skillSynonyms = {
+  "react": ["react.js","reactjs","reactjs.org"],
+  "node": ["node.js","nodejs"],
+  "js": ["javascript"],
+  "ts": ["typescript"],
+  "aws": ["amazon web services","amazonaws"],
+  "gcp": ["google cloud","google cloud platform"],
+  "sql": ["postgres","postgresql","mysql"],
+  "docker": ["container","containers"],
+  "kubernetes": ["k8s","kubernetes.io"],
+  "html": ["html5"],
+  "css": ["css3","scss"]
+};
 
-/* ========== SEMANTIC SCORING ========== */
-function getPhrases(text){return text.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);}
-function jaccardSim(a,b){
-  const sa=new Set(a.split(' ')), sb=new Set(b.split(' '));
-  const inter=[...sa].filter(x=>sb.has(x)).length;
-  const union=new Set([...sa,...sb]).size;
-  return inter/Math.max(union,1);
-}
-function semanticScore(job,resume){
-  const jobP=getPhrases(job), resP=getPhrases(resume);
-  if(!jobP.length||!resP.length)return 0;
-  let total=0;
-  jobP.forEach(jp=>{
-    let best=0;
-    resP.forEach(rp=>{
-      const sim=jaccardSim(jp,rp);
-      if(sim>best)best=sim;
+const titleSynonyms = {
+  "engineer": ["developer","software engineer","software developer","sde","sde2","sde1"],
+  "data scientist": ["data analyst","ml engineer","machine learning engineer","ml scientist"],
+  "product manager": ["pm","product owner"],
+  "qa": ["test engineer","quality assurance","qa engineer"]
+};
+
+/* Build reverse lookup to expand synonyms to canonical keys for faster matching */
+function buildReverseMap(map){
+  const rev = {};
+  for(const key of Object.keys(map)){
+    const variants = [key, ...map[key]];
+    variants.forEach(v=>{
+      const norm = normalize(v);
+      rev[norm] = normalize(key);
     });
-    total+=best;
-  });
-  return total/jobP.length;
+  }
+  return rev;
+}
+const skillRev = buildReverseMap(skillSynonyms);
+const titleRev = buildReverseMap(titleSynonyms);
+
+/* Normalize a token to its canonical synonym key when present */
+function canonicalSkillToken(token){
+  const n = normalize(token);
+  if(skillRev[n]) return skillRev[n];
+  // also collapse some punctuation variants
+  if(n.endsWith('js')) return 'js';
+  return n;
+}
+function canonicalTitleToken(token){
+  const n = normalize(token);
+  if(titleRev[n]) return titleRev[n];
+  return n;
 }
 
-/* ========== MAIN FUNCTIONALITY ========== */
-const jobDesc=document.getElementById("jobDesc"),
-resumeUpload=document.getElementById("resumeUpload"),
-resultsDiv=document.getElementById("results"),
-progressBar=document.getElementById("progressBar"),
-progressContainer=document.getElementById("progressContainer"),
-progressText=document.getElementById("progressText"),
-analyzeBtn=document.getElementById("analyzeBtn"),
-exportCSV=document.getElementById("exportCSV"),
-exportPDF=document.getElementById("exportPDF"),
-aiScan=document
+/* --------------------------
+   Extract skills & title from JD
+   -------------------------- */
+function extractSkillsFromJD(jdText){
+  if(!jdText) return [];
+  const lines = jdText.split(/\r?\n/);
+  for(const ln of lines){
+    const low = ln.toLowerCase().trim();
+    if(low.startsWith('skills:') || low.startsWith('skill:') || low.startsWith('requirements:')){
+      const right = ln.split(':').slice(1).join(':').trim();
+      const parts = right.split(/[,;|\/·•]/).map(p=>p.trim()).filter(Boolean);
+      return unique(parts.map(p=>canonicalSkillToken(p)));
+    }
+  }
+  // fallback: pick top meaningful tokens from JD
+  const tokens = tokenize(jdText).filter(t => t.length>2);
+  const stop = new Set(['the','and','with','from','that','this','will','your','you','are','for','using','use','years','experience','skill','required','requirements','candidate','responsibilities','responsibility','work']);
+  const freq = {};
+  tokens.forEach(t=>{ if(!stop.has(t)) freq[t] = (freq[t]||0)+1; });
+  const sorted = Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,18);
+  return unique(sorted.map(tok=>canonicalSkillToken(tok)));
+}
+
+function extractTitleFromJD(jdText){
+  if(!jdText) return '';
+  const lines = jdText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  // search for explicit "Title:" line
+  for(const ln of lines){
+    const low = ln.toLowerCase();
+    if(low.startsWith('title:') || low.startsWith('job title:')){
+      return canonicalTitleToken(ln.split(':').slice(1).join(':').trim());
+    }
+  }
+  // heuristic: first line if it's short (<=6 words)
+  if(lines.length){
+    const first = lines[0];
+    if(first.split(/\s+/).length <= 6) return canonicalTitleToken(first);
+  }
+  return '';
+}
+
+/* --------------------------
+   Skill matching (fuzzy)
+   -------------------------- */
+function countSkillMatches(jobSkills, resumeText){
+  if(!jobSkills || !jobSkills.length) return 0;
+  const rnorm = normalize(resumeText);
+  const found = new Set();
+  for(const sk of jobSkills){
+    if(!sk) continue;
+    // attempt canonical checks
+    const skCanon = canonicalSkillToken(sk);
+    // try word boundary or substring
+    const re = new RegExp('\\b' + sk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b','i');
+    if(re.test(rnorm) || rnorm.includes(skCanon) || skCanon.split(/[\s\.\+\#\-]/).some(c => c && rnorm.includes(c))){
+      found.add(skCanon);
+      continue;
+    }
+    // if skill canonical maps to some synonyms, check them
+    for(const syn of Object.keys(skillSynonyms)){
+      const syns = [syn, ...skillSynonyms[syn]];
+      if(syns.map(s=>normalize(s)).includes(skCanon)){
+        // check any variant in resume
+        if(syns.some(v => rnorm.includes(normalize(v)))) { found.add(skCanon); break; }
+      }
+    }
+  }
+  return found.size;
+}
+
+/* --------------------------
+   Title matching (fuzzy + synonyms)
+   -------------------------- */
+function titleMatchScore(jobTitle, resumeText){
+  if(!jobTitle) return 0;
+  const jcanon = canonicalTitleToken(jobTitle);
+  const rnorm = normalize(resumeText);
+  // check presence of job title or its synonyms in resume
+  // direct presence
+  if(rnorm.includes(jcanon)) return 1;
+  // synonyms
+  for(const key of Object.keys(titleSynonyms)){
+    const variants = [key, ...titleSynonyms[key]];
+    if(variants.map(v => normalize(v)).includes(jcanon)){
+      // check resume for any variant
+      if(variants.some(v => rnorm.includes(normalize(v)))) return 1;
+    }
+  }
+  // partial token overlap heuristic
+  const jtoks = tokenize(jobTitle).filter(t=>t.length>2);
+  const rtoks = new Set(tokenize(resumeText));
+  const matches = jtoks.filter(t => rtoks.has(t) || rnorm.includes(t)).length;
+  if(jtoks.length===0) return 0;
+  return Math.min(1, matches / jtoks.length);
+}
+
+/* --------------------------
+   Experience extraction & scoring
+   -------------------------- */
+function extractYears(text){
+  if(!text) return null;
+  const matches = [...text.matchAll(/(\d{1,2})\s*\+?\s*(?:years|yrs|year|yr)\b/ig)];
+  const nums = matches.map(m=>parseInt(m[1],10)).filter(n=>!isNaN(n));
+  if(nums.length) return Math.max(...nums);
+  const compact = [...text.matchAll(/(\d{1,2})\+/g)].map(m=>parseInt(m[1],10)).filter(n=>!isNaN(n));
+  if(compact.length) return Math.max(...compact);
+  return null;
+}
+function experienceScore(jobYears, resumeYears){
+  if(jobYears==null && resumeYears==null) return 0.5;
+  if(jobYears==null && resumeYears!=null) return Math.min(1, 0.6 + Math.min(10,resumeYears)*0.04);
+  if(jobYears!=null && resumeYears==null) return Math.max(0, 1 - (jobYears*0.18));
+  const diff = resumeYears - jobYears;
+  if(diff >= 0) return 1;
+  const score = 1 - (Math.abs(diff)/Math.max(1, jobYears));
+  return Math.max(0, Math.min(1, score));
+}
+
+/* --------------------------
+   Semantic similarity (sentence-level Jaccard)
+   -------------------------- */
+function semanticScore(jobText, resumeText){
+  if(!jobText || !resumeText) return 0;
+  const jobP = jobText.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);
+  const resP = resumeText.split(/[.!?]/).map(s=>s.trim()).filter(Boolean);
+  if(!jobP.length || !resP.length) return 0;
+  let total = 0;
+  for(const jp of jobP){
+    let best = 0;
+    const ja = new Set(tokenize(jp));
+    for(const rp of resP){
+      const ra = new Set(tokenize(rp));
+      const inter = [...ja].filter(x=>ra.has(x)).length;
+      const union = new Set([...ja,...ra]).size || 1;
+      const sim = inter/union;
+      if(sim>best) best = sim;
+    }
+    total += best;
+  }
+  return Math.min(1, total / jobP.length);
+}
+
+/* --------------------------
+   Combine signals (weights)
+   Skills: 50%, Title: 20%, Experience: 20%, Semantic: 10%
+   -------------------------- */
+const WEIGHTS = { skills:0.50, title:0.20, experience:0.20, semantic:0.10 };
+
+function computeFinal(jobSkills, resumeText, jobTitle, jobYears, resumeYears, jobText){
+  const skillMatches = countSkillMatches(jobSkills, resumeText);
+  const skillDenom = Math.max(1, jobSkills.length);
+  const skillsRatio = Math.min(1, skillMatches / skillDenom); // 0..1
+  const titleScore = titleMatchScore(jobTitle, resumeText); // 0..1
+  const expScore = experienceScore(jobYears, resumeYears); // 0..1
+  const semScore = semanticScore(jobText, resumeText); // 0..1
+
+  const raw = (WEIGHTS.skills * skillsRatio) + (WEIGHTS.title * titleScore) + (WEIGHTS.experience * expScore) + (WEIGHTS.semantic * semScore);
+  const pct = Math.round(Math.max(0, Math.min(1, raw)) * 100);
+  return {
+    final:pct,
+    skillsPct: Math.round(skillsRatio*100),
+    titlePct: Math.round(titleScore*100),
+    expPct: Math.round(expScore*100),
+    semPct: Math.round(semScore*100),
+    matchedSkills: skillMatches,
+    totalJobSkills: jobSkills.length
+  };
+}
+
+/* --------------------------
+   UI wiring & main flow
+   -------------------------- */
+const jobDescEl = document.getElementById('jobDesc');
+const resumeUpload = document.getElementById('resumeUpload');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const resultsDiv = document.getElementById('results');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+const exportCSV = document.getElementById('exportCSV');
+const exportPDF = document.getElementById('exportPDF');
+
+let lastResults = [];
+
+function setProgress(p, msg=''){
+  progressContainer.style.display = (p>0 && p<100) ? 'block' : (p>=100 ? 'none' : progressContainer.style.display);
+  progressBar.style.width = Math.max(0, Math.min(100, p)) + '%';
+  progressText.textContent = msg ? ${msg} (${Math.round(p)}%) : '';
+}
+
+function parseJob(jobText){
+  const skills = extractSkillsFromJD(jobText);
+  const title = extractTitleFromJD(jobText);
+  const years = extractYears(jobText);
+  return { skills, title, years };
+}
+
+analyzeBtn.addEventListener('click', async ()=>{
+  resultsDiv.innerHTML = '';
+  lastResults = [];
+  exportCSV.style.display = exportPDF.style.display = 'none';
+  const jobText = (jobDescEl.value || '').trim();
+  if(!jobText){ alert('Please paste the job description (include Title: and Skills: lines if possible).'); return; }
+  const files = Array.from(resumeUpload.files || []);
+  if(files.length === 0){ alert('Please upload one or more resumes.'); return; }
+
+  setProgress(3,'Parsing job description');
+  const parsed = parseJob(jobText);
+  const jobSkills = parsed.skills;
+  const jobTitle = parsed.title;
+  const jobYears = parsed.years;
+
+  // Show info box
+  const info = document.createElement('div');
+  info.className = 'panel';
+  info.style.marginBottom = '12px';
+  info.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <div style="font-weight:700">Job Title:</div><div style="color:var(--muted)">${escapeHtml(jobTitle || '(none detected)')}</div>
+    <div style="font-weight:700;margin-left:12px">Skills:</div><div style="color:var(--muted)">${jobSkills.length? jobSkills.join(', '):'(none detected)'}</div>
+    <div style="margin-left:auto;color:var(--muted)">Years: ${jobYears!=null?jobYears:'(not specified)'}</div>
+  </div>`;
+  resultsDiv.appendChild(info);
+
+  setProgress(8,'Reading resumes');
+
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    setProgress(8 + (i/files.length)*70, 'Reading ' + f.name);
+    let txt = '';
+    try{ txt = await extractText(f); }catch(e){ txt = ''; }
+    if(!txt){
+      try{ txt = await f.text(); }catch(e){ txt = ''; }
+    }
+
+    const resumeYears = extractYears(txt);
+    const res = computeFinal(jobSkills, txt, jobTitle, jobYears, resumeYears, jobText);
+
+    lastResults.push({
+      name: f.name,
+      final: res.final,
+      skillsPct: res.skillsPct,
+      titlePct: res.titlePct,
+      expPct: res.expPct,
+      semPct: res.semPct,
+      matchedSkills: res.matchedSkills,
+      totalJobSkills: res.totalJobSkills,
+      resumeYears,
+      jobYears,
+      snippet: (txt||'').slice(0,420).replace(/\s+/g,' ').trim()
+    });
+
+    await new Promise(r=>setTimeout(r,120));
+  }
+
+  // sort & render
+  lastResults.sort((a,b)=>b.final - a.final);
+  setProgress(96,'Rendering results');
+
+  for(let i=0;i<lastResults.length;i++){
+    const r = lastResults[i];
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    const badgeClass = r.final >= 80 ? 'badge good' : (r.final >=50 ? 'badge warn' : 'badge bad');
+    const badgeHtml = <div class="${badgeClass}">${r.final} / 100</div>;
+
+    card.innerHTML = `
+      <div style="flex:1">
+        <div style="font-weight:800">${i+1}. ${escapeHtml(r.name)}</div>
+        <div class="breakdown">
+          Skills: <strong>${r.skillsPct}%</strong> (${r.matchedSkills}/${r.totalJobSkills}) · Title: <strong>${r.titlePct}%</strong> · Experience: <strong>${r.expPct}%</strong> (${r.resumeYears!=null?r.resumeYears+' yrs':'n/a'})
+        </div>
+        <div class="snippet">${escapeHtml(r.snippet || '(no text extracted)')}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        ${badgeHtml}
+        <div style="font-size:13px;color:var(--muted)">Confidence</div>
+      </div>
+    `;
+    resultsDiv.appendChild(card);
+  }
+
+  setProgress(100,'Done');
+  exportCSV.style.display = exportPDF.style.display = 'inline-block';
+});
+
+/* --------------------------
+   Export handlers
+   -------------------------- */
+exportCSV.addEventListener('click', ()=>{
+  if(!lastResults.length) return alert('No results to export.');
+  const header = ['Rank','Filename','Score','Skills%','Title%','Experience%','Context%','ResumeYears','JobYears'];
+  const rows = lastResults.map((r,idx)=>[idx+1, r.name, r.final, r.skillsPct, r.titlePct, r.expPct, r.semPct, r.resumeYears||'', r.jobYears||'']);
+  const csv = [header.join(','), ...rows.map(r => r.map(c=>"${String(c).replace(/"/g,'""')}").join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'resume_ranking.csv'; a.click(); URL.revokeObjectURL(url);
+});
+
+exportPDF.addEventListener('click', ()=>{
+  if(!lastResults.length) return alert('No results to export.');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const margin = 40; let y = 50;
+  doc.setFontSize(16); doc.text('AI Resume Ranker — Results', margin, y); y+=22;
+  doc.setFontSize(10); doc.text('Generated: ' + new Date().toLocaleString(), margin, y); y+=18;
+  lastResults.forEach((r, idx)=>{
+    if(y > 760){ doc.addPage(); y = 50; }
+    doc.setFontSize(12); doc.text(${idx+1}. ${r.name} — ${r.final} / 100, margin, y); y += 14;
+    doc.setFontSize(10);
+    doc.text(Skills: ${r.skillsPct}% (${r.matchedSkills}/${r.totalJobSkills})  ·  Title: ${r.titlePct}%  ·  Experience: ${r.expPct}% (${r.resumeYears!=null?r.resumeYears+' yrs':'n/a'})  ·  Context: ${r.semPct}%, margin, y); y += 12;
+    const snippet = (r.snippet || '').replace(/\s+/g,' ').trim();
+    const lines = doc.splitTextToSize(snippet, 520);
+    doc.text(lines, margin, y);
+    y += lines.length*11 + 12;
+  });
+  doc.save('resume_ranking.pdf');
+});
+
+/* --------------------------
+   Drag & drop convenience
+   -------------------------- */
+['dragenter','dragover'].forEach(e => document.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false));
+['dragleave','drop'].forEach(e => document.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false));
+document.addEventListener('drop', ev => {
+  const f = ev.dataTransfer.files;
+  if(f && f.length) resumeUpload.files = f;
+});
+
+/* init */
+setProgress(0,'');
+</script>
+</body>
+</html>
